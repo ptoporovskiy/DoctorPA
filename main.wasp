@@ -1,0 +1,128 @@
+app DoctorPA {
+  wasp: {
+    version: "^0.11.1"
+  },
+  title: "DoctorPA",
+  client: {
+    rootComponent: import { Layout } from "@client/Layout.jsx",
+  },
+  db: {
+    prisma: {
+      clientPreviewFeatures: ["extendedWhereUnique"]
+    }
+  },
+  auth: {
+    userEntity: User,
+    methods: {
+      usernameAndPassword: {}
+    },
+    onAuthFailedRedirectTo: "/login",
+    onAuthSucceededRedirectTo: "/"
+  },
+}
+
+route LoginRoute { path: "/login", to: LoginPage }
+page LoginPage {
+  component: import Login from "@client/pages/auth/Login.jsx"
+}
+route SignupRoute { path: "/signup", to: SignupPage }
+page SignupPage {
+  component: import Signup from "@client/pages/auth/Signup.jsx"
+}
+
+entity User {=psl
+        id Int @id @default(autoincrement())
+        username String @unique
+        password String
+        role String
+        appointments Appointment[]
+        chats Chat[]
+        notes Note[]
+psl=}
+
+entity Appointment {=psl
+        id Int @id @default(autoincrement())
+        doctorId Int
+        patientId Int
+        dateTime DateTime
+        notes String
+        patient User @relation(name: "PatientAppointments", fields: [patientId], references: [id])
+        doctor User @relation(name: "DoctorAppointments", fields: [doctorId], references: [id])
+psl=}
+
+entity Chat {=psl
+        id Int @id @default(autoincrement())
+        doctorId Int
+        patientId Int
+        content String
+        patient User @relation(name: "PatientChats", fields: [patientId], references: [id])
+        doctor User @relation(name: "DoctorChats", fields: [doctorId], references: [id])
+psl=}
+
+entity Note {=psl
+        id Int @id @default(autoincrement())
+        doctorId Int
+        appointmentId Int
+        content String
+        doctor User @relation(name: "DoctorNotes", fields: [doctorId], references: [id])
+        appointment Appointment @relation(fields: [appointmentId], references: [id])
+psl=}
+
+action createAppointment {
+  fn: import { createAppointment } from "@server/actions.js",
+  entities: [Appointment, User]
+}
+
+action cancelAppointment {
+  fn: import { cancelAppointment } from "@server/actions.js",
+  entities: [Appointment, User]
+}
+
+action createChat {
+  fn: import { createChat } from "@server/actions.js",
+  entities: [Chat, User]
+}
+
+action createNote {
+  fn: import { createNote } from "@server/actions.js",
+  entities: [Note, Appointment, User]
+}
+
+query getAppointments {
+  fn: import { getAppointments } from "@server/queries.js",
+  entities: [Appointment, User]
+}
+
+query getChats {
+  fn: import { getChats } from "@server/queries.js",
+  entities: [Chat, User]
+}
+
+query getNotes {
+  fn: import { getNotes } from "@server/queries.js",
+  entities: [Note, Appointment, User]
+}
+
+route DashboardRoute { path: "/", to: DashboardPage }
+page DashboardPage {
+  component: import { DashboardPage } from "@client/pages/DashboardPage.jsx",
+  authRequired: true
+}
+
+route AppointmentRoute { path: "/appointment/:appointmentId", to: AppointmentPage }
+page AppointmentPage {
+  component: import { Appointment } from "@client/pages/Appointment.jsx",
+  authRequired: true
+}
+
+route ChatRoute { path: "/chat/:chatId", to: ChatPage }
+page ChatPage {
+  component: import { Chat } from "@client/pages/Chat.jsx",
+  authRequired: true
+}
+
+route NoteRoute { path: "/note/:noteId", to: NotePage }
+page NotePage {
+  component: import { Note } from "@client/pages/Note.jsx",
+  authRequired: true
+}
